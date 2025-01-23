@@ -28,10 +28,10 @@ app = dash.Dash(__name__)
 
 #---------------------------------------------------------------------------------
 # Create the dropdown menu options
-#dropdown_options
-   # {'label': '...........', 'value': 'Yearly Statistics'},
-    #{'label': 'Recession Period Statistics', 'value': '.........'}
-
+dropdown_options = [
+    {'label': 'Yearly Statistics', 'value': 'Yearly Statistics'},
+    {'label': 'Recession Period Statistics', 'value': 'Recession Period Statistics'}
+]
 # List of years 
 year_list = [i for i in range(1980, 2024, 1)]
 #---------------------------------------------------------------------------------------
@@ -75,17 +75,16 @@ app.layout = html.Div(
     Output(component_id='select-year', component_property='disabled'), 
     Input(component_id='dropdown-statistics',component_property='value'))
 
-def update_input_container(selected_report_type):
-    if selected_report_type == 'Yearly Statistics':
+def update_input_container(selected_statistics):
+    if selected_statistics == 'Yearly Statistics':
         return False  # dropdown year on
     else:
         return True  # dropdown year off
 
 @app.callback(
-    Output('output-container', 'children'), 
-    [Input('dropdown-statistics', 'value'),  
-     Input('select-year', 'value')]  
-)
+    Output(component_id='output-container', component_property='children'),
+    [Input(component_id='dropdown-statistics', component_property='value'), 
+    Input(component_id='select-year', component_property='value')])
 
 
 #Callback for plotting
@@ -98,7 +97,7 @@ def update_input_container(selected_report_type):
     ]
 )
 
-def update_output_container(selected_report_type, selected_year):
+def update_output_container(selected_statistics, input_year):
     if selected_report_type == 'Recession Period Statistics': # Filter the data for recession periods
         recession_data = data[data['Recession'] == 1]
         
