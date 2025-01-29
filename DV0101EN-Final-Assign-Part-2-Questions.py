@@ -3,46 +3,25 @@
 
 # In[ ]:
 
-
 from dash import dcc, html
-import plotly.express as px
-import os
 import dash
-import more_itertools
-from dash import dcc
-from dash import html
 from dash.dependencies import Input, Output
 import pandas as pd
-import plotly.graph_objs as go
 import plotly.express as px
 
-
-# Load the data using pandas
+# TASK 1: Load the data
 data = pd.read_csv('https://cf-courses-data.s3.us.cloud-object-storage.appdomain.cloud/IBMDeveloperSkillsNetwork-DV0101EN-SkillsNetwork/Data%20Files/historical_automobile_sales.csv')
 
-# Initialize the Dash app
+# TASK 2: Initialize the Dash app
 app = dash.Dash(__name__)
 
-# Set the title of the dashboard
-#app.title = "Automobile Statistics Dashboard"
-
-#---------------------------------------------------------------------------------
-# Create the dropdown menu options
-dropdown_options = [
-    {'label': 'Yearly Statistics', 'value': 'Yearly Statistics'},
-    {'label': 'Recession Period Statistics', 'value': 'Recession Period Statistics'}
-]
-# List of years 
-year_list = [i for i in range(1980, 2024, 1)]
-#---------------------------------------------------------------------------------------
-# Create the layout of the app
-#TASK 2.1 Add title to the dashboard
-app.layout = html.Div(
+# TASK 2.1: Add title to the dashboard
+app.layout = html.Div([
     html.H1('Automobile Sales Statistics Dashboard', 
-            style={'textAlign': 'center', 'color': '#503D36', 'font-size': 24})
-            ,
-     #TASK 2.2: Add two dropdown menus
-#Dropdown 1 (Statistics)
+            style={'textAlign': 'center', 'color': '#503D36', 'font-size': 24}),  # Dashboard title
+
+    # TASK 2.2: Add two dropdown menus
+    # Dropdown 1: Statistics selection
     html.Div([
         html.Label("Select Statistics:"),
         dcc.Dropdown(
@@ -50,60 +29,49 @@ app.layout = html.Div(
             options=[
                 {'label': 'Yearly Statistics', 'value': 'Yearly Statistics'},
                 {'label': 'Recession Period Statistics', 'value': 'Recession Period Statistics'}
-                ],
-            value='Select Statistics',
+            ],
             placeholder='Select a report type'
         )
     ]),
-    #Dropdown 2 (Years)
-    html.Div(dcc.Dropdown(
-            id='select-year',
-            options=[{'label': i, 'value': i} for i in year_list],
-            value='Select-year',
-            placeholder='Select-year',
-            )
-        )),
-    
-    #TASK 2.3: Add a division for output display
+
+    # Dropdown 2: Year selection
     html.Div([
-        html.Div(id='output-container', className='chart-grid', style={'display': 'flex'}),])
+        dcc.Dropdown(
+            id='select-year',
+            options=[{'label': i, 'value': i} for i in range(1980, 2024)],
+            placeholder='Select a year'
+        )
+    ]),
 
+    # TASK 2.3: Add a division for output display
+    html.Div(id='output-container', className='chart-grid', style={'display': 'flex'}),
+])
 
-#TASK 2.4: Creating Callbacks
-# Define the callback function to update the input container based on the selected statistics
+# TASK 2.4: Create callbacks for user interaction
+# Callback 1: Enable/disable year dropdown based on the selected statistics
 @app.callback(
     Output(component_id='select-year', component_property='disabled'), 
-    Input(component_id='dropdown-statistics',component_property='value'))
-
+    Input(component_id='dropdown-statistics', component_property='value')
+)
 def update_input_container(selected_statistics):
     if selected_statistics == 'Yearly Statistics':
-        return False  # dropdown year on
+        return False  # Enable the year dropdown
     else:
-        return True  # dropdown year off
+        return True  # Disable the year dropdown
 
+# Callback 2: Generate graphs based on the selected statistics and year
 @app.callback(
     Output(component_id='output-container', component_property='children'),
     [Input(component_id='dropdown-statistics', component_property='value'), 
-    Input(component_id='select-year', component_property='value')])
-
-
-#Callback for plotting
-# Define the callback function to update the input container based on the selected statistics
-@app.callback(
-    Output(component_id='output-container', component_property='children'),
-    [
-        Input(component_id='dropdown-statistics', component_property='value'), 
-        Input(component_id='select-year', component_property='value')
-    ]
+     Input(component_id='select-year', component_property='value')]
 )
-
-def update_output_container(selected_statistics, input_year):
-    if selected_report_type == 'Recession Period Statistics': # Filter the data for recession periods
+def update_output_container(selected_statistics, selected_year):
+    # TASK 2.5: Create and display graphs for Recession Period Statistics
+    if selected_statistics == 'Recession Period Statistics':
+        # Filter data for recession periods
         recession_data = data[data['Recession'] == 1]
-        
 
-#TASK 2.5: Create and display graphs for Recession Report Statistics
-# Plot 1: Automobile sales fluctuation during recession periods
+        # Plot 1: Automobile sales fluctuation during recession periods
         yearly_rec = recession_data.groupby('Year')['Automobile_Sales'].mean().reset_index()
         R_chart1 = dcc.Graph(
             figure=px.line(yearly_rec,
@@ -121,7 +89,7 @@ def update_output_container(selected_statistics, input_year):
                 title="Average Number of Vehicles Sold by Vehicle Type")
         )
 
-        # Plot 3: Advertising expenditure share by vehicle type during recessions
+        # Plot 3: Advertising expenditure share by vehicle type during recession
         exp_rec = recession_data.groupby('Vehicle_Type')['Advertising_Expenditure'].sum().reset_index()
         R_chart3 = dcc.Graph(
             figure=px.pie(exp_rec,
@@ -131,25 +99,25 @@ def update_output_container(selected_statistics, input_year):
         )
 
         # Plot 4: Effect of unemployment rate on vehicle type and sales
-        unemp_data = recession_data.groupby(['Vehicle_Type', 'Unemployment_Rate'])['Automobile_Sales'].mean().reset_index()
+        unemp_data = recession_data.groupby(['Vehicle_Type', 'unemployment_rate'])['Automobile_Sales'].mean().reset_index()
         R_chart4 = dcc.Graph(
             figure=px.bar(unemp_data,
-                x='Unemployment_Rate',
+                x='unemployment_rate',
                 y='Automobile_Sales',
                 color='Vehicle_Type',
                 labels={'Unemployment_Rate': 'Unemployment Rate', 'Automobile_Sales': 'Average Automobile Sales'},
                 title='Effect of Unemployment Rate on Vehicle Type and Sales')
         )
 
-        # Return the graphs for the recession report
+        # Return the generated graphs
         return [
             html.Div(className='chart-item', children=[html.Div(children=R_chart1), html.Div(children=R_chart2)], style={'display': 'flex'}),
             html.Div(className='chart-item', children=[html.Div(children=R_chart3), html.Div(children=R_chart4)], style={'display': 'flex'})
         ]
-    
-    # If the report type is "Yearly Statistics"
-    elif report_type == 'Yearly Statistics' and selected_year:
-        # Filter the data by the selected year
+
+    # TASK 2.6: Create and display graphs for Yearly Statistics
+    elif selected_statistics == 'Yearly Statistics' and selected_year:
+        # Filter data for the selected year
         yearly_data = data[data['Year'] == selected_year]
 
         # Plot 1: Yearly automobile sales
@@ -188,16 +156,15 @@ def update_output_container(selected_statistics, input_year):
                 title='Total Advertisement Expenditure for Each Vehicle')
         )
 
-        # Return the graphs for the yearly statistics report
+        # Return the generated graphs
         return [
             html.Div(className='chart-item', children=[html.Div(children=Y_chart1), html.Div(children=Y_chart2)], style={'display': 'flex'}),
             html.Div(className='chart-item', children=[html.Div(children=Y_chart3), html.Div(children=Y_chart4)], style={'display': 'flex'})
         ]
-    
+
     # If no valid report type is selected
     return html.Div("Please select a report type and year.")
 
-port=int(os.getenv('PORT', 8060))
-# run server
+# Run the Dash app
 if __name__ == '__main__':
-    app.run_server(host='0.0.0.0', port=port)
+    app.run_server(debug=True, port=8054) #port can be change if you need
